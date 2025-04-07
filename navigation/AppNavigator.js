@@ -1,9 +1,10 @@
 // navigation/AppNavigator.js
-import React from 'react';
+import React, {useContext} from 'react'; //hook importu reactten edilmeli.
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthContext } from '../context/AuthContext';
 
 // Ekranları import edeceğiz (henüz oluşturmadık)
 import HomeScreen from '../screens/HomeScreen';
@@ -13,6 +14,7 @@ import SavedPostsScreen from '../screens/SavedPostsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
+import Loading from '../components/Loading';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -96,7 +98,13 @@ function MainTabs() {
 }
 
 // Ana Navigator (Auth ve Main arasında geçiş yapacak)
-export default function AppNavigator({ isLoggedIn }) {
+export default function AppNavigator() {
+  const { isLoggedIn, loading } = useContext(AuthContext);
+
+  if (loading) {
+    return <Loading />;
+  }
+
   return (
     <NavigationContainer>
       {isLoggedIn ? <MainTabs /> : <AuthStack />}

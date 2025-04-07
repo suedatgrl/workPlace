@@ -1,5 +1,4 @@
-// screens/LoginScreen.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
   View, 
   Text, 
@@ -10,14 +9,36 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Animated
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login } = useContext(AuthContext);
+  const [email, setEmail] = useState('demo@example.com'); // Demo için değeri önceden doldurduk
+  const [password, setPassword] = useState('password'); // Demo için değeri önceden doldurduk
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Animasyonlar için
+  const fadeAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(50);
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true
+      })
+    ]).start();
+  }, []);
 
   // Form doğrulama
   const validate = () => {
@@ -34,39 +55,17 @@ export default function LoginScreen({ navigation }) {
   // Giriş yapma
   const handleLogin = async () => {
     if (validate()) {
+      setIsSubmitting(true);
       try {
-        // Normalde API'ye istek yapılır, burada simüle ediyoruz
-        // const response = await axios.post('https://api.example.com/login', { email, password });
-        
-        // Simüle edilmiş başarılı giriş
-        // Gerçek uygulamada API'den dönen token kaydedilir
-        await AsyncStorage.setItem('userToken', 'dummy-token');
-        
-        // App.js'deki useEffect hook'u bunu algılayacak ve NavigationContainer'ı güncelleyecek
-        // Burada manuel olarak App.js'deki state'i güncellemek için bir yol ekleyebiliriz
-        // Örneğin: navigation.reset({...}) ya da bir context'i güncellemek gibi
-        
-        // Geçici çözüm: Uygulamayı yeniden başlatmak
-        Alert.alert(
-          'Giriş Başarılı',
-          'Uygulamaya giriş yaptınız.',
-          [
-            { 
-              text: 'Tamam', 
-              onPress: () => {
-                // Uygulamayı yeniden başlatmak için App.js'e sinyal gönderiyoruz
-                // Gerçek uygulamada daha iyi bir çözüm kullanılmalı
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Login' }]
-                });
-              }
-            }
-          ]
-        );
+        const result = await login(email, password);
+        if (!result.success) {
+          Alert.alert('Giriş Başarısız', result.message);
+        }
       } catch (error) {
-        Alert.alert('Hata', 'Giriş yapılırken bir hata oluştu. Lütfen bilgilerinizi kontrol edin.');
+        Alert.alert('Hata', 'Giriş yapılırken bir hata oluştu.');
         console.error(error);
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -77,15 +76,31 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView style={styles.container}>
-        <View style={styles.logoContainer}>
+        <Animated.View 
+          style={[
+            styles.logoContainer, 
+            { 
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }] 
+            }
+          ]}
+        >
           <Image
-            source={require('../assets/logo.png')} // Logo resminizi assets klasörüne ekleyin
+            source={require('../assets/logo.png')}
             style={styles.logo}
           />
           <Text style={styles.appName}>Portfolyo App</Text>
-        </View>
+        </Animated.View>
         
-        <View style={styles.formContainer}>
+        <Animated.View 
+          style={[
+            styles.formContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
           <Text style={styles.title}>Giriş Yap</Text>
           
           <View style={styles.inputGroup}>
@@ -97,6 +112,7 @@ export default function LoginScreen({ navigation }) {
               placeholder="ornek@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isSubmitting}
             />
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           </View>
@@ -109,21 +125,28 @@ export default function LoginScreen({ navigation }) {
               onChangeText={setPassword}
               placeholder="********"
               secureTextEntry
+              editable={!isSubmitting}
             />
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
           
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Giriş Yap</Text>
+          <TouchableOpacity 
+            style={[styles.loginButton, isSubmitting && styles.disabledButton]} 
+            onPress={handleLogin}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.loginButtonText}>
+              {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            </Text>
           </TouchableOpacity>
           
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Hesabınız yok mu?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={isSubmitting}>
               <Text style={styles.signupLink}>Üye Ol</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -193,6 +216,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
   loginButtonText: {
     color: '#fff',

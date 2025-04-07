@@ -4,6 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './navigation/AppNavigator';
 
+import { AuthProvider } from './context/AuthContext';
+import { PostProvider } from './context/PostContext';
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,9 +33,12 @@ export default function App() {
   }
 
   return (
-    <>
-      <AppNavigator isLoggedIn={isLoggedIn} />
-      <StatusBar style="auto" />
-    </>
+    <AuthProvider>
+      <PostProvider>
+        <AppNavigator isLoggedIn={isLoggedIn} />
+        <StatusBar style="auto" />
+      </PostProvider>
+    </AuthProvider>
   );
+  
 }
